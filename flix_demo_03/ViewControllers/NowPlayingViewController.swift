@@ -174,7 +174,15 @@ class NowPlayingViewController: UIViewController, UITableViewDataSource, UISearc
     }
     
     
-    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let cell = sender as! UITableViewCell
+        if let indexPath = tableView.indexPath(for: cell) {
+            let movie = movies[indexPath.row]
+            let detailViewComtroller = segue.destination as! DetailViewController
+            detailViewComtroller.movie = movie
+        }
+        
+    }
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
