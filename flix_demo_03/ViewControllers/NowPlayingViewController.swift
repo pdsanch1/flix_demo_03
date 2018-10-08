@@ -17,10 +17,12 @@ class NowPlayingViewController: UIViewController, UITableViewDataSource, UISearc
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
-    var movies: [[String: Any]] = []
+   // var movies: [[String: Any]] = []
+    var movies: [Movie] = []
+    
     var refreshControl: UIRefreshControl!
     
-    var filteredData: [[String: Any]] = []
+    var filteredData: [Movie] = [] //[[String: Any]] = []
     
     var searchController: UISearchController!
     
@@ -78,43 +80,36 @@ class NowPlayingViewController: UIViewController, UITableViewDataSource, UISearc
         // add the OK action to the alert controller
         alertController.addAction(RETRYAction)
         
-        let url = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed")!
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10) // 10 seconds
-        let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
-        let task = session.dataTask(with: request) { (data, response, error) in
-            // This will run when the network request returns
-            // Network requests are async in a different queue thread
-            // than the main thread, which is handling user input
-            if let error = error {
-                print(error.localizedDescription)
-                alertController.title="Cannot fech Movies"
-                alertController.message=error.localizedDescription
-                UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true) {
-                }
-            } else if let data = data {
-                var dataDictionary: [String: Any]?
-                do {
-                    try dataDictionary = JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
-                } catch let parserError {
-                    print(parserError.localizedDescription)
-                    return
-                }
-                //print(dataDictionary!)
-                let movies = dataDictionary!["results"] as! [[String: Any]]
-                self.activityIndicator.stopAnimating()
+
+        MovieApiManager().popularMovies { (movies: [Movie]?, error: Error?) in
+            if let movies = movies {
                 self.movies = movies
                 self.filteredData = self.movies
                 self.tableView.reloadData()
-                self.refreshControl.endRefreshing()
-                
-                //                for movie in movies {
-                //                    let title = movie["title"] as! String
-                //                    print(title)
-                //                }
-                
             }
         }
-        task.resume()
+        
+//        MovieApiManager().nowPlayingMovies { (movies: [Movie]?, error: Error?) in
+//            if let movies = movies {
+//                self.movies = movies
+//                self.filteredData = self.movies
+//                self.tableView.reloadData()
+//            }
+//        }
+
+
+        
+
+//                self.tableView.reloadData()
+
+
+
+                self.refreshControl.endRefreshing()
+
+                self.activityIndicator.stopAnimating()
+        
+        
+       // task.resume()
 
     }
     
@@ -125,34 +120,16 @@ class NowPlayingViewController: UIViewController, UITableViewDataSource, UISearc
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "MovieCell", for: indexPath) as! MovieCell
-       
-        let movie = filteredData[indexPath.row]
 
-        let title = movie["title"] as! String
+        cell.movie = movies[indexPath.row]
         
-        let overview = movie["overview"] as! String
-        cell.titleLabel.text = title
-        cell.overviewLabel.text = overview
-        let posterPathString = movie["poster_path"] as! String
-        
-//        let placeholderImage = UIImage(named: "placedholder")
-//        
-//        let filter = AspectScaledToFillSizeWithRoundedCornersFilter(
-//            size: cell.posterImageView.frame.size,
-//            radius: 30.0)
-//        
-        
-        let baseUrlString = "https://image.tmdb.org/t/p/w500"
-        let posterURL = URL(string: baseUrlString + posterPathString)!
-        
-        let backgroundView = UIView()
-        backgroundView.backgroundColor = UIColor.magenta
-        cell.selectedBackgroundView = backgroundView
-        
-        cell.posterImageView.af_setImage(
-            withURL: posterURL) //,
-            //placeholderImage: placeholderImage) //,
-            //filter: filter)
+//        let movie = filteredData[indexPath.row]
+//        cell.titleLabel.text = movie.title
+//        cell.overviewLabel.text = movie.overview
+//        let posterURL = movie.posterUrl //URL(string: baseUrlString + posterPathString)!
+
+        //        cell.posterImageView.af_setImage(
+//            withURL: posterURL!) //,
         
         return cell
         
@@ -163,8 +140,8 @@ class NowPlayingViewController: UIViewController, UITableViewDataSource, UISearc
         //print(self.movieTitles)
         if let searchText = searchController.searchBar.text {
             filteredData = searchText.isEmpty ? filteredData : filteredData.filter({
-                (movieRecord: [String: Any]) -> Bool in
-                return (movieRecord["title"] as! String).range(of: searchText, options: .caseInsensitive) != nil
+                (movieRecord: Movie) -> Bool in
+                return (movieRecord.title as! String).range(of: searchText, options: .caseInsensitive) != nil
             })
 
            
